@@ -19,9 +19,9 @@ namespace src
     public DecodeAndWriteFile(ILoggerFactory loggerFactory)
     {
       _logger = loggerFactory.CreateLogger<DecodeAndWriteFile>();
-      STORAGE_ACCOUNT_NAME = System.Environment.GetEnvironmentVariable("StorageAccountName");
-      STORAGE_ACCOUNT_INPUT_CONTAINER_NAME = System.Environment.GetEnvironmentVariable("StorageAccountInputContainerName");
-      STORAGE_ACCOUNT_OUTPUT_CONTAINER_NAME = System.Environment.GetEnvironmentVariable("StorageAccountOutputContainerName");
+      STORAGE_ACCOUNT_NAME = Environment.GetEnvironmentVariable("StorageAccountName");
+      STORAGE_ACCOUNT_INPUT_CONTAINER_NAME = Environment.GetEnvironmentVariable("StorageAccountInputContainerName");
+      STORAGE_ACCOUNT_OUTPUT_CONTAINER_NAME = Environment.GetEnvironmentVariable("StorageAccountOutputContainerName");
     }
 
     [Function("DecodeAndWriteFile")]
@@ -32,7 +32,7 @@ namespace src
       BlobClient downloadBlobClient = new BlobClient(new Uri(input.Data.Url),
                                    new DefaultAzureCredential(new DefaultAzureCredentialOptions
                                    {
-                                     ManagedIdentityClientId = System.Environment.GetEnvironmentVariable("ManagedIdentityClientId")
+                                     ManagedIdentityClientId = Environment.GetEnvironmentVariable("ManagedIdentityClientId")
                                    }));
 
       BlobDownloadResult downloadResult = await downloadBlobClient.DownloadContentAsync();
@@ -48,7 +48,7 @@ namespace src
 
       BlobClient uploadBlobClient = new BlobClient(uploadBlobUri, new DefaultAzureCredential(new DefaultAzureCredentialOptions
       {
-        ManagedIdentityClientId = System.Environment.GetEnvironmentVariable("ManagedIdentityClientId")
+        ManagedIdentityClientId = Environment.GetEnvironmentVariable("ManagedIdentityClientId")
       }));
 
       using (var uploadStream = new MemoryStream())
