@@ -4,6 +4,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Azure.Identity;
 using Azure.Storage.Blobs.Models;
+using System.Text;
+using System.Text.Json;
 
 namespace src
 {
@@ -38,7 +40,8 @@ namespace src
 
       DecodedMessageData decodedMessageData = new DecodedMessageData()
       {
-        DecodedMessage = encodedMessageData.EncodedMessage
+        Timestamp = encodedMessageData.Timestamp,
+        DecodedMessage = Encoding.UTF8.GetString(Convert.FromBase64String(encodedMessageData.EncodedMessage))
       };
 
       Uri uploadBlobUri = new Uri($"https://{STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{STORAGE_ACCOUNT_OUTPUT_CONTAINER_NAME}/{input.Data.Url.Split('/').Last()}");
@@ -47,17 +50,28 @@ namespace src
       {
         ManagedIdentityClientId = System.Environment.GetEnvironmentVariable("ManagedIdentityClientId")
       }));
+
+      using (var uploadStream = new MemoryStream())
+      {
+        await JsonSerializer.SerializeAsync(uploadStream, decodedMessageData);
+
+        uploadStream.Position = 0;
+
+        await uploadBlobClient.UploadAsync(uploadStream, true);
+      }
     }
   }
 }
 
 public class EncodedMessageData
 {
+  public DateTime Timestamp { get; set; }
   public string EncodedMessage { get; set; }
 }
 
 public class DecodedMessageData
 {
+  public DateTime Timestamp { get; set; }
   public string DecodedMessage { get; set; }
 }
 

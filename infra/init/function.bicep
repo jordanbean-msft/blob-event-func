@@ -54,7 +54,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${managedIdentity.id}': ''
+      '${managedIdentity.id}': {}
     }
   }
   properties: {
