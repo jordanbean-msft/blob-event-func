@@ -55,3 +55,5 @@ module functionDeployment 'function.bicep' = {
     storageAccountOutputContainerName: storageDeployment.outputs.storageAccountOutputContainerName
   }
 }
+
+output functionAppName string = functionDeployment.outputs.functionAppName
