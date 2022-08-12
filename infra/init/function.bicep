@@ -2,12 +2,6 @@ param appServicePlanName string
 param functionAppName string
 param location string
 param logAnalyticsWorkspaceName string
-param vNetName string
-param applicationSubnetName string
-param functionAppPrivateEndpointName string
-param functionAppNetworkInterfaceName string
-param privateEndpointSubnetName string
-param privateDnsZoneName string
 param appInsightsName string
 param storageAccountName string
 param managedIdentityName string
@@ -43,10 +37,6 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2021-03-01' = {
   }
 }
 
-resource applicationSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-08-01' existing = {
-  name: '${vNetName}/${applicationSubnetName}'
-}
-
 resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   name: functionAppName
   location: location
@@ -59,7 +49,6 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   }
   properties: {
     serverFarmId: appServicePlan.id
-    // virtualNetworkSubnetId: applicationSubnet.id
     siteConfig: {
       netFrameworkVersion: 'v6.0'
       appSettings: [
@@ -99,66 +88,6 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
     }
   }
 }
-
-resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-08-01' existing = {
-  name: '${vNetName}/${privateEndpointSubnetName}'
-}
-
-// resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-08-01' = {
-//   name: functionAppPrivateEndpointName
-//   location: location
-//   properties: {
-//     subnet: {
-//       id: privateEndpointSubnet.id
-//     }
-//     privateLinkServiceConnections: [
-//       {
-//         name: functionAppPrivateEndpointName
-//         properties: {
-//           privateLinkServiceId: functionApp.id
-//           groupIds: [
-//             'sites'
-//           ]
-//         }
-//       }
-//     ]
-//   }
-// }
-
-// resource networkInterface 'Microsoft.Network/networkInterfaces@2021-08-01' = {
-//   name: functionAppNetworkInterfaceName
-//   location: location
-//   properties: {
-//     ipConfigurations: [
-//       {
-//         name: functionAppNetworkInterfaceName
-//         properties: {
-//           subnet: {
-//             id: privateEndpointSubnet.id
-//           }
-//         }
-//       }
-//     ]
-//   }
-// }
-
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
-  name: privateDnsZoneName
-}
-
-// resource privateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
-//   name: '${privateEndpoint.name}/${privateDnsZoneName}-group'
-//   properties: {
-//     privateDnsZoneConfigs: [
-//       {
-//         name: '${privateDnsZoneName}-config'
-//         properties: {
-//           privateDnsZoneId: privateDnsZone.id
-//         }
-//       }
-//     ]
-//   }
-// }
 
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'Logging'

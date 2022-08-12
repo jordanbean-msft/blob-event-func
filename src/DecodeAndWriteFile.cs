@@ -25,18 +25,9 @@ namespace src
     }
 
     [Function("DecodeAndWriteFile")]
-    public async Task Run([EventGridTrigger] MyEvent input)
+    public async Task Run([EventGridTrigger] BlobCreatedEvent input)
     {
-      _logger.LogInformation(input.Data.ToString());
-
-      BlobClient downloadBlobClient = new BlobClient(new Uri(input.Data.Url),
-                                   new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                                   {
-                                     ManagedIdentityClientId = Environment.GetEnvironmentVariable("ManagedIdentityClientId")
-                                   }));
-
-      BlobDownloadResult downloadResult = await downloadBlobClient.DownloadContentAsync();
-      EncodedMessageData encodedMessageData = downloadResult.Content.ToObjectFromJson<EncodedMessageData>();
+      EncodedMessageData encodedMessageData = await DownloadEncodedMessageDataAsync(input.Data.Url);
 
       DecodedMessageData decodedMessageData = new DecodedMessageData()
       {
@@ -44,9 +35,26 @@ namespace src
         DecodedMessage = Encoding.UTF8.GetString(Convert.FromBase64String(encodedMessageData.EncodedMessage))
       };
 
-      Uri uploadBlobUri = new Uri($"https://{STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{STORAGE_ACCOUNT_OUTPUT_CONTAINER_NAME}/{input.Data.Url.Split('/').Last()}");
+      string uploadBlobUri = $"https://{STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{STORAGE_ACCOUNT_OUTPUT_CONTAINER_NAME}/{input.Data.Url.Split('/').Last()}";
 
-      BlobClient uploadBlobClient = new BlobClient(uploadBlobUri, new DefaultAzureCredential(new DefaultAzureCredentialOptions
+      await UploadDecodedMessageDataAsync(uploadBlobUri, decodedMessageData);
+    }
+
+    private async Task<EncodedMessageData> DownloadEncodedMessageDataAsync(string url)
+    {
+      BlobClient downloadBlobClient = new BlobClient(new Uri(url),
+                                                     new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                                                     {
+                                                       ManagedIdentityClientId = Environment.GetEnvironmentVariable("ManagedIdentityClientId")
+                                                     }));
+
+      BlobDownloadResult downloadResult = await downloadBlobClient.DownloadContentAsync();
+      return downloadResult.Content.ToObjectFromJson<EncodedMessageData>();
+    }
+
+    private async Task UploadDecodedMessageDataAsync(string url, DecodedMessageData decodedMessageData)
+    {
+      BlobClient uploadBlobClient = new BlobClient(new Uri(url), new DefaultAzureCredential(new DefaultAzureCredentialOptions
       {
         ManagedIdentityClientId = Environment.GetEnvironmentVariable("ManagedIdentityClientId")
       }));
@@ -55,51 +63,11 @@ namespace src
       {
         await JsonSerializer.SerializeAsync(uploadStream, decodedMessageData);
 
+        //have to reset MemoryStream before trying to use it to upload
         uploadStream.Position = 0;
 
         await uploadBlobClient.UploadAsync(uploadStream, true);
       }
     }
   }
-}
-
-public class EncodedMessageData
-{
-  public DateTime Timestamp { get; set; }
-  public string EncodedMessage { get; set; }
-}
-
-public class DecodedMessageData
-{
-  public DateTime Timestamp { get; set; }
-  public string DecodedMessage { get; set; }
-}
-
-public class MyEvent
-{
-  public string Id { get; set; }
-
-  public string Topic { get; set; }
-
-  public string Subject { get; set; }
-
-  public string EventType { get; set; }
-
-  public DateTime EventTime { get; set; }
-
-  public BlobCreatedEventData Data { get; set; }
-}
-
-public class BlobCreatedEventData
-{
-  public string Api { get; set; }
-  public string ClientRequestId { get; set; }
-  public string RequestId { get; set; }
-  public string eTag { get; set; }
-  public string ContentType { get; set; }
-  public int ContentLength { get; set; }
-  public string BlobType { get; set; }
-  public string Url { get; set; }
-  public string Sequencer { get; set; }
-  public object StorageDiagnostics { get; set; }
 }
